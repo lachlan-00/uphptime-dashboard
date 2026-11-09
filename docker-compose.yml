@@ -1,0 +1,11 @@
+name: uphptime-dashboard
+
+services:
+  dashboard:
+    build:
+      dockerfile: Dockerfile
+    container_name: uphptime-dashboard-web
+    restart: unless-stopped
+    ports:
+      - "${DASHBOARD_HTTP_PORT:-48480}:80"
+

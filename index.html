@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>uPHPtime Dashboard</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header>
+    <h1>uPHPtime Dashboard</h1>
+    <button id="toggle-settings" type="button">Settings</button>
+  </header>
+<section id="settings" hidden>
+  <form id="settings-form">
+    <label>
+      Node base URL
+      <input id="node-url" type="url" placeholder="https://uphptime-node.example" required>
+    </label>
+    <label>
+      Report API key
+      <input id="api-key" type="password" placeholder="report_api_key" required>
+    </label>
+    <button type="submit">Save</button>
+  </form>
+  <p class="hint">Saved only in this browser's local storage - never sent anywhere except the node URL above.</p>
+</section>
+
+<section id="controls">
+  <label>
+    Period
+    <select id="period">
+      <option value="overall" selected>Overall</option>
+      <option value="month">Month</option>
+      <option value="day">Day</option>
+    </select>
+  </label>
+  <label id="month-field" hidden>
+    Month (YYYY-MM)
+    <input id="month" type="month">
+  </label>
+  <label id="date-field" hidden>
+    Date
+    <input id="date" type="date">
+  </label>
+  <label>
+    Group
+    <select id="group">
+      <option value="">All groups</option>
+    </select>
+  </label>
+  <button id="refresh" type="button">Refresh</button>
+  <span id="status" role="status"></span>
+</section>
+
+<section id="summary">
+  <div class="card">
+    <span class="label">Uptime</span>
+    <span id="summary-uptime" class="value">-</span>
+  </div>
+  <div class="card">
+    <span class="label">Checks</span>
+    <span id="summary-checks" class="value">-</span>
+  </div>
+  <div class="card">
+    <span class="label">Sites shown</span>
+    <span id="summary-count" class="value">-</span>
+  </div>
+  <div class="card">
+    <span class="label">Generated at</span>
+    <span id="summary-generated" class="value">-</span>
+  </div>
+</section>
+
+<table id="items">
+  <thead>
+    <tr>
+      <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="name">Name</button></th>
+      <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="groups">Groups</button></th>
+      <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="state">State</button></th>
+      <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="uptime">Uptime %</button></th>
+      <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="checks">Checks (pass / total)</button></th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script src="./app.js"></script>
+</body>
+</html>
