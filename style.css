@@ -32,6 +32,61 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overscroll-behavior-y: contain;
+}
+
+#ptr-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  margin-top: -56px;
+  color: var(--accent);
+  font-size: 1.3rem;
+  pointer-events: none;
+  transition: margin-top 0.15s ease;
+  z-index: 1000;
+}
+
+#ptr-indicator.visible {
+  transition: none;
+}
+
+#ptr-indicator.refreshing {
+  margin-top: 0;
+  transition: margin-top 0.15s ease;
+}
+
+#ptr-arrow {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+#ptr-arrow.flip {
+  transform: rotate(180deg);
+}
+
+#ptr-indicator.refreshing #ptr-arrow {
+  display: none;
+}
+
+#ptr-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ptr-spin 0.7s linear infinite;
+}
+
+@keyframes ptr-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 header {

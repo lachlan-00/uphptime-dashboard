@@ -302,6 +302,87 @@
     });
   }
 
+  function setupPullToRefresh() {
+    const indicator = el('ptr-indicator');
+    const arrow = el('ptr-arrow');
+    const spinner = el('ptr-spinner');
+    const threshold = 70;
+    const maxPull = 110;
+
+    let startY = null;
+    let pulling = false;
+    let refreshing = false;
+
+    function reset() {
+      indicator.classList.remove('visible');
+      indicator.style.marginTop = '';
+      arrow.classList.remove('flip');
+      startY = null;
+      pulling = false;
+    }
+
+    window.addEventListener('touchstart', (event) => {
+      if (refreshing || window.scrollY > 0 || event.touches.length !== 1) {
+        startY = null;
+
+        return;
+      }
+      startY = event.touches[0].clientY;
+      pulling = false;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (event) => {
+      if (startY === null || refreshing) {
+        return;
+      }
+
+      const delta = event.touches[0].clientY - startY;
+      if (delta <= 0) {
+        return;
+      }
+
+      if (window.scrollY > 0) {
+        startY = null;
+        reset();
+
+        return;
+      }
+
+      pulling = true;
+      const distance = Math.min(delta * 0.5, maxPull);
+      indicator.classList.add('visible');
+      indicator.style.marginTop = (-56 + distance) + 'px';
+      arrow.classList.toggle('flip', distance >= threshold);
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+      if (!pulling || refreshing) {
+        reset();
+
+        return;
+      }
+
+      const distance = parseFloat(indicator.style.marginTop || '-56') + 56;
+      if (distance >= threshold) {
+        refreshing = true;
+        indicator.classList.add('refreshing');
+        spinner.hidden = false;
+        fetchReport().finally(() => {
+          refreshing = false;
+          spinner.hidden = true;
+          indicator.classList.remove('refreshing');
+          reset();
+        });
+      } else {
+        reset();
+      }
+    });
+
+    window.addEventListener('touchcancel', reset);
+  }
+
+  setupPullToRefresh();
+
   const existing = loadConfig();
   if (existing) {
     nodeUrlInput.value = existing.nodeUrl;
