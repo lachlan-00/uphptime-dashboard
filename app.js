@@ -302,6 +302,14 @@
     });
   }
 
+  function triggerHaptic() {
+    const haptics = window.Capacitor?.Plugins?.Haptics;
+    if (!haptics) {
+      return;
+    }
+    haptics.impact({ style: 'LIGHT' }).catch(() => {});
+  }
+
   function setupPullToRefresh() {
     const indicator = el('ptr-indicator');
     const arrow = el('ptr-arrow');
@@ -312,6 +320,7 @@
     let startY = null;
     let pulling = false;
     let refreshing = false;
+    let armed = false;
 
     function reset() {
       indicator.classList.remove('visible');
@@ -319,6 +328,7 @@
       arrow.classList.remove('flip');
       startY = null;
       pulling = false;
+      armed = false;
     }
 
     window.addEventListener('touchstart', (event) => {
@@ -329,6 +339,7 @@
       }
       startY = event.touches[0].clientY;
       pulling = false;
+      armed = false;
     }, { passive: true });
 
     window.addEventListener('touchmove', (event) => {
@@ -352,7 +363,14 @@
       const distance = Math.min(delta * 0.5, maxPull);
       indicator.classList.add('visible');
       indicator.style.marginTop = (-56 + distance) + 'px';
-      arrow.classList.toggle('flip', distance >= threshold);
+      const reached = distance >= threshold;
+      arrow.classList.toggle('flip', reached);
+      if (reached && !armed) {
+        armed = true;
+        triggerHaptic();
+      } else if (!reached) {
+        armed = false;
+      }
     }, { passive: true });
 
     window.addEventListener('touchend', () => {
