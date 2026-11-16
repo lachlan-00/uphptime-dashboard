@@ -22,18 +22,32 @@
   let sortKey = null;
   let sortDirection = 'asc';
 
-  function loadConfig() {
+  function preferences() {
+    return window.Capacitor?.Plugins?.Preferences || null;
+  }
+
+  async function loadConfig() {
+    const prefs = preferences();
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = prefs
+        ? (await prefs.get({ key: STORAGE_KEY })).value
+        : localStorage.getItem(STORAGE_KEY);
+
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
     }
   }
 
-  function saveConfig(config) {
+  async function saveConfig(config) {
+    const prefs = preferences();
+    const raw = JSON.stringify(config);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      if (prefs) {
+        await prefs.set({ key: STORAGE_KEY, value: raw });
+      } else {
+        localStorage.setItem(STORAGE_KEY, raw);
+      }
     } catch {
       // Private browsing / blocked storage: the form still works for this page load.
     }
@@ -48,8 +62,8 @@
     }
   }
 
-  function isConfigured() {
-    const config = loadConfig();
+  async function isConfigured() {
+    const config = await loadConfig();
 
     return Boolean(config && config.nodeUrl && config.apiKey);
   }
@@ -67,10 +81,34 @@
     return url.toString();
   }
 
+  function network() {
+    return window.Capacitor?.Plugins?.Network || null;
+  }
+
+  async function isOffline() {
+    const net = network();
+    if (!net) {
+      return false;
+    }
+    try {
+      const status = await net.getStatus();
+
+      return !status.connected;
+    } catch {
+      return false;
+    }
+  }
+
   async function fetchReport() {
-    const config = loadConfig();
+    const config = await loadConfig();
     if (!config) {
       setStatus('Configure a node URL and API key first.', true);
+
+      return;
+    }
+
+    if (await isOffline()) {
+      setStatus('Offline - check your connection.', true);
 
       return;
     }
@@ -138,6 +176,10 @@
     return group === '' ? lastItems : lastItems.filter((item) => (item.groups || []).includes(group));
   }
 
+  function formatUptime(value) {
+    return value.toFixed(4) + '%';
+  }
+
   function compareItems(left, right) {
     let comparison;
 
@@ -199,7 +241,7 @@
     }
 
     const denominator = totals.checks_total - totals.checks_unknown - totals.checks_excluded_maintenance;
-    totals.uptime_percent = denominator > 0 ? Math.round((totals.checks_pass / denominator) * 10000) / 100 : null;
+    totals.uptime_percent = denominator > 0 ? (totals.checks_pass / denominator) * 100 : null;
 
     return totals;
   }
@@ -210,7 +252,7 @@
       .map(({ item }) => item);
     const overall = computeOverall(items);
 
-    el('summary-uptime').textContent = overall.uptime_percent === null ? 'n/a' : overall.uptime_percent + '%';
+    el('summary-uptime').textContent = overall.uptime_percent === null ? 'n/a' : formatUptime(overall.uptime_percent);
     el('summary-checks').textContent = overall.checks_pass + ' / ' + overall.checks_total;
     el('summary-count').textContent = String(items.length);
     el('summary-generated').textContent = new Date().toLocaleString();
@@ -239,7 +281,7 @@
 
       const uptime = document.createElement('td');
       uptime.dataset.label = 'Uptime %';
-      uptime.textContent = item.uptime_percent === null || item.uptime_percent === undefined ? 'n/a' : item.uptime_percent + '%';
+      uptime.textContent = item.uptime_percent === null || item.uptime_percent === undefined ? 'n/a' : formatUptime(item.uptime_percent);
       row.append(uptime);
 
       const checks = document.createElement('td');
@@ -264,8 +306,8 @@
     }
   }
 
-  function openSettingsIfUnconfigured() {
-    if (!isConfigured()) {
+  async function openSettingsIfUnconfigured() {
+    if (!(await isConfigured())) {
       settingsSection.hidden = false;
     }
   }
@@ -274,9 +316,9 @@
     settingsSection.hidden = !settingsSection.hidden;
   });
 
-  settingsForm.addEventListener('submit', (event) => {
+  settingsForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    saveConfig({ nodeUrl: nodeUrlInput.value.trim(), apiKey: apiKeyInput.value.trim() });
+    await saveConfig({ nodeUrl: nodeUrlInput.value.trim(), apiKey: apiKeyInput.value.trim() });
     settingsSection.hidden = true;
     fetchReport();
   });
@@ -399,17 +441,42 @@
     window.addEventListener('touchcancel', reset);
   }
 
+  function setupAppLifecycle() {
+    const app = window.Capacitor?.Plugins?.App;
+    if (!app) {
+      return;
+    }
+
+    app.addListener('backButton', () => {
+      if (!settingsSection.hidden) {
+        settingsSection.hidden = true;
+
+        return;
+      }
+      app.minimizeApp();
+    });
+
+    app.addListener('resume', async () => {
+      if (await isConfigured()) {
+        fetchReport();
+      }
+    });
+  }
+
   setupPullToRefresh();
+  setupAppLifecycle();
 
-  const existing = loadConfig();
-  if (existing) {
-    nodeUrlInput.value = existing.nodeUrl;
-    apiKeyInput.value = existing.apiKey;
-  }
+  (async () => {
+    const existing = await loadConfig();
+    if (existing) {
+      nodeUrlInput.value = existing.nodeUrl;
+      apiKeyInput.value = existing.apiKey;
+    }
 
-  syncPeriodFields();
-  openSettingsIfUnconfigured();
-  if (isConfigured()) {
-    fetchReport();
-  }
+    syncPeriodFields();
+    await openSettingsIfUnconfigured();
+    if (await isConfigured()) {
+      fetchReport();
+    }
+  })();
 })();
