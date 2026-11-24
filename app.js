@@ -13,6 +13,10 @@
   const monthInput = el('month');
   const dateField = el('date-field');
   const dateInput = el('date');
+  const rangeStartField = el('range-start-field');
+  const rangeStartInput = el('range-start');
+  const rangeEndField = el('range-end-field');
+  const rangeEndInput = el('range-end');
   const groupSelect = el('group');
   const statusEl = el('status');
   const itemsBody = document.querySelector('#items tbody');
@@ -76,6 +80,10 @@
     }
     if (periodSelect.value === 'day' && dateInput.value) {
       url.searchParams.set('date', dateInput.value);
+    }
+    if (periodSelect.value === 'range' && rangeStartInput.value && rangeEndInput.value) {
+      url.searchParams.set('start', rangeStartInput.value);
+      url.searchParams.set('end', rangeEndInput.value);
     }
 
     return url.toString();
@@ -293,9 +301,15 @@
     }
   }
 
+  function toDateString(date) {
+    return date.toISOString().slice(0, 10);
+  }
+
   function syncPeriodFields() {
     monthField.hidden = periodSelect.value !== 'month';
     dateField.hidden = periodSelect.value !== 'day';
+    rangeStartField.hidden = periodSelect.value !== 'range';
+    rangeEndField.hidden = periodSelect.value !== 'range';
 
     const today = new Date();
     if (periodSelect.value === 'month' && !monthInput.value) {
@@ -303,6 +317,29 @@
     }
     if (periodSelect.value === 'day' && !dateInput.value) {
       dateInput.value = today.toISOString().slice(0, 10);
+    }
+    if (periodSelect.value === 'range') {
+      if (!rangeEndInput.value) {
+        rangeEndInput.value = toDateString(today);
+      }
+      if (!rangeStartInput.value) {
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 6);
+        rangeStartInput.value = toDateString(weekAgo);
+      }
+    }
+  }
+
+  // Keeps the "To" date from landing before the "From" date.
+  function syncRangeBounds() {
+    if (rangeStartInput.value) {
+      rangeEndInput.min = rangeStartInput.value;
+    }
+    if (rangeEndInput.value) {
+      rangeStartInput.max = rangeEndInput.value;
+    }
+    if (rangeStartInput.value && rangeEndInput.value && rangeEndInput.value < rangeStartInput.value) {
+      rangeEndInput.value = rangeStartInput.value;
     }
   }
 
@@ -329,6 +366,14 @@
   });
   monthInput.addEventListener('change', fetchReport);
   dateInput.addEventListener('change', fetchReport);
+  rangeStartInput.addEventListener('change', () => {
+    syncRangeBounds();
+    fetchReport();
+  });
+  rangeEndInput.addEventListener('change', () => {
+    syncRangeBounds();
+    fetchReport();
+  });
   groupSelect.addEventListener('change', renderAll);
   el('refresh').addEventListener('click', fetchReport);
   for (const headerButton of sortHeaders) {
