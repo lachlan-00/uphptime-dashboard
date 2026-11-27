@@ -68,7 +68,11 @@
 
 <section id="summary">
   <div class="card">
-    <span class="label">Uptime</span>
+    <span class="label">Confirmed uptime</span>
+    <span id="summary-confirmed-uptime" class="value">-</span>
+  </div>
+  <div class="card">
+    <span class="label">Raw uptime</span>
     <span id="summary-uptime" class="value">-</span>
   </div>
   <div class="card">
@@ -91,7 +95,8 @@
       <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="name">Name</button></th>
       <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="groups">Groups</button></th>
       <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="state">State</button></th>
-      <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="uptime">Uptime %</button></th>
+      <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="confirmed">Confirmed uptime %</button></th>
+      <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="uptime">Raw uptime %</button></th>
       <th scope="col" aria-sort="none"><button class="sort-header" type="button" data-sort="checks">Checks (pass / total)</button></th>
     </tr>
   </thead>

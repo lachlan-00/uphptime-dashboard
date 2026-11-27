@@ -46,7 +46,7 @@ Both are saved only in this browser's `localStorage`, never sent anywhere except
   client-side against the last fetched response, so it doesn't refetch per click
 - **Overall card**: recomputed from whichever sites are currently visible (filtered or not) - summed check
   counts, not an average of per-site percentages, matching how the server itself computes an aggregate
-- **Per-site table**: name, groups, state (up/down/suspect/unknown), uptime %, and raw pass/total counts
+- **Per-site table**: name, groups, state (up/down/suspect/unknown), confirmed uptime % (only two or more consecutive missed checks count as downtime), raw uptime % (every missed check counts), and pass/total counts
 
 ## Deploying
 

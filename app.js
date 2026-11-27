@@ -201,9 +201,11 @@
       case 'state':
         comparison = String(left.state || '').localeCompare(String(right.state || ''), undefined, { numeric: true, sensitivity: 'base' });
         break;
-      case 'uptime': {
-        const leftUptime = left.uptime_percent;
-        const rightUptime = right.uptime_percent;
+      case 'uptime':
+      case 'confirmed': {
+        const field = sortKey === 'confirmed' ? 'confirmed_uptime_percent' : 'uptime_percent';
+        const leftUptime = left[field];
+        const rightUptime = right[field];
         if (leftUptime === null || leftUptime === undefined) {
           return rightUptime === null || rightUptime === undefined ? 0 : 1;
         }
@@ -240,16 +242,21 @@
   // Mirrors UptimeReport::uptimePercent()/merge() on the server: not an average of per-site
   // percentages, but recomputed from the summed raw check counts of whatever's currently visible.
   function computeOverall(items) {
-    const totals = { checks_total: 0, checks_pass: 0, checks_unknown: 0, checks_excluded_maintenance: 0 };
+    const totals = { checks_total: 0, checks_pass: 0, checks_unknown: 0, checks_excluded_maintenance: 0, checks_confirmed_down: 0 };
     for (const item of items) {
       totals.checks_total += item.checks_total || 0;
       totals.checks_pass += item.checks_pass || 0;
       totals.checks_unknown += item.checks_unknown || 0;
       totals.checks_excluded_maintenance += item.checks_excluded_maintenance || 0;
+      totals.checks_confirmed_down += item.checks_confirmed_down || 0;
     }
 
     const denominator = totals.checks_total - totals.checks_unknown - totals.checks_excluded_maintenance;
     totals.uptime_percent = denominator > 0 ? (totals.checks_pass / denominator) * 100 : null;
+
+    // Mirrors UptimeReport::confirmedUptimePercent(): only confirmed-down checks reduce it, so errors and isolated misses do not.
+    const confirmedDenominator = totals.checks_total - totals.checks_excluded_maintenance;
+    totals.confirmed_uptime_percent = confirmedDenominator > 0 ? ((confirmedDenominator - totals.checks_confirmed_down) / confirmedDenominator) * 100 : null;
 
     return totals;
   }
@@ -260,6 +267,7 @@
       .map(({ item }) => item);
     const overall = computeOverall(items);
 
+    el('summary-confirmed-uptime').textContent = overall.confirmed_uptime_percent === null ? 'n/a' : formatUptime(overall.confirmed_uptime_percent);
     el('summary-uptime').textContent = overall.uptime_percent === null ? 'n/a' : formatUptime(overall.uptime_percent);
     el('summary-checks').textContent = overall.checks_pass + ' / ' + overall.checks_total;
     el('summary-count').textContent = String(items.length);
@@ -287,8 +295,13 @@
       state.append(pill);
       row.append(state);
 
+      const confirmed = document.createElement('td');
+      confirmed.dataset.label = 'Confirmed uptime %';
+      confirmed.textContent = item.confirmed_uptime_percent === null || item.confirmed_uptime_percent === undefined ? 'n/a' : formatUptime(item.confirmed_uptime_percent);
+      row.append(confirmed);
+
       const uptime = document.createElement('td');
-      uptime.dataset.label = 'Uptime %';
+      uptime.dataset.label = 'Raw uptime %';
       uptime.textContent = item.uptime_percent === null || item.uptime_percent === undefined ? 'n/a' : formatUptime(item.uptime_percent);
       row.append(uptime);
 
